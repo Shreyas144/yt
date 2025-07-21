@@ -52,8 +52,27 @@ if 'video_details' not in st.session_state:
 if 'search_results' not in st.session_state:
     st.session_state['search_results'] = None
 
-# --- Core Functions ---
-def run_yt_dlp_command(url_or_query, ydl_opts, cookie_data=None):
+progress_bar = st.progress(0)
+status_text = st.empty()
+
+def progress_hook(d):
+    if d['status'] == 'downloading':
+        total_bytes = d.get('total_bytes') or d.get('total_bytes_estimate')
+        if total_bytes:
+            percent = d['downloaded_bytes'] / total_bytes
+            progress_bar.progress(min(int(percent * 100), 100))
+            status_text.text(f"Downloading... {int(percent * 100)}%")
+    elif d['status'] == 'finished':
+        progress_bar.progress(100)
+        status_text.text("Download complete. Processing...")
+
+def run_yt_dlp_command(url_or_query, ydl_opts, cookie_data=None, progress_callback=None):
+    ffmpeg_path = "/tmp/ffmpeg/ffmpeg"
+    ydl_opts['ffmpeg_location'] = ffmpeg_path
+
+    if progress_callback:
+        ydl_opts['progress_hooks'] = [progress_callback]
+
     temp_cookie_path = None
     try:
         if cookie_data:
@@ -187,6 +206,7 @@ elif st.session_state.video_details:
                     
                     if st.button("Download Video", key="download_video", use_container_width=True):
                         placeholder = st.empty()
+                        setup_ffmpeg()
                         placeholder.info("Preparing download...")
                         format_id = format_options[selected_label]
                         ydl_opts = {
@@ -195,7 +215,7 @@ elif st.session_state.video_details:
                             'merge_output_format': 'mp4',
                             'ffmpeg_location': ffmpeg_path,
                         }
-                        result = run_yt_dlp_command(video_details.get('webpage_url'), ydl_opts, st.session_state.get('cookie_data'))
+                        result = run_yt_dlp_command(video_details.get('webpage_url'), ydl_opts, st.session_state.get('cookie_data'),progress_callback=progress_hook)
                         
                         downloaded_files = os.listdir(temp_dir)
                         if not downloaded_files:
@@ -233,6 +253,7 @@ elif st.session_state.video_details:
 
                 if st.button("Download Audio as MP3", key="download_mp3", use_container_width=True):
                     placeholder = st.empty()
+                    setup_ffmpeg()
                     placeholder.info("Preparing download...")
                     format_id = audio_options[selected_audio_label]
                     ydl_opts = {
