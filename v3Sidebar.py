@@ -36,6 +36,8 @@ def setup_ffmpeg():
     
 setup_ffmpeg()
 
+ffmpeg_path = "/tmp/ffmpeg/ffmpeg"
+
 try:
     version = subprocess.check_output(['ffmpeg', '-version'], stderr=subprocess.STDOUT)
     print("✅ FFmpeg is installed and available.")
@@ -191,6 +193,7 @@ elif st.session_state.video_details:
                             'format': f'{format_id}+bestaudio/best' if '+bestaudio' not in format_id else format_id,
                             'outtmpl': os.path.join(temp_dir, '%(title)s.%(ext)s'),
                             'merge_output_format': 'mp4',
+                            'ffmpeg_location': ffmpeg_path,
                         }
                         result = run_yt_dlp_command(video_details.get('webpage_url'), ydl_opts, st.session_state.get('cookie_data'))
                         
@@ -235,7 +238,8 @@ elif st.session_state.video_details:
                     ydl_opts = {
                         'format': format_id,
                         'outtmpl': os.path.join(temp_dir, '%(title)s.%(ext)s'),
-                        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}]
+                        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}],
+                        'ffmpeg_location': ffmpeg_path,
                     }
                     result = run_yt_dlp_command(video_details.get('webpage_url'), ydl_opts, st.session_state.get('cookie_data'))
                     
