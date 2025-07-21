@@ -6,28 +6,35 @@ import re
 import os
 import subprocess
 import urllib.request
+import tarfile
 
 def setup_ffmpeg():
     ffmpeg_url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+    archive_path = "/tmp/ffmpeg.tar.xz"
     extract_dir = "/tmp/ffmpeg"
 
-    if not os.path.exists(extract_dir):
-        os.makedirs(extract_dir, exist_ok=True)
-        archive_path = "/tmp/ffmpeg.tar.xz"
-        
-        # Download FFmpeg archive
-        urllib.request.urlretrieve(ffmpeg_url, archive_path)
-        
-        # Extract only the 'ffmpeg' binary
-        subprocess.run(["tar", "-xJf", archive_path, "--strip-components=1", "-C", extract_dir, "ffmpeg-*-static/ffmpeg"])
-        
-        # Make it executable
-        ffmpeg_bin = os.path.join(extract_dir, "ffmpeg")
-        os.chmod(ffmpeg_bin, 0o755)
-    
-    # Add to PATH
-    os.environ["PATH"] = extract_dir + os.pathsep + os.environ.get("PATH", "")
+    # If already downloaded and extracted, skip
+    ffmpeg_bin = os.path.join(extract_dir, "ffmpeg")
+    if os.path.exists(ffmpeg_bin):
+        os.environ["PATH"] = extract_dir + os.pathsep + os.environ.get("PATH", "")
+        return
 
+    os.makedirs(extract_dir, exist_ok=True)
+
+    # Download the tarball
+    urllib.request.urlretrieve(ffmpeg_url, archive_path)
+
+    # Extract ffmpeg binary
+    with tarfile.open(archive_path, mode='r:xz') as tar:
+        for member in tar.getmembers():
+            if member.name.endswith('/ffmpeg'):
+                member.name = os.path.basename(member.name)  # prevent directory traversal
+                tar.extract(member, path=extract_dir)
+                break
+
+    os.chmod(ffmpeg_bin, 0o755)
+    os.environ["PATH"] = extract_dir + os.pathsep + os.environ.get("PATH", "")
+    
 setup_ffmpeg()
 
 # --- Session State Initialization ---
