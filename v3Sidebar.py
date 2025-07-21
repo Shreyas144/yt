@@ -3,7 +3,6 @@ import yt_dlp
 import os
 import tempfile
 import re
-import os
 import subprocess
 import urllib.request
 import tarfile
@@ -36,6 +35,12 @@ def setup_ffmpeg():
     os.environ["PATH"] = extract_dir + os.pathsep + os.environ.get("PATH", "")
     
 setup_ffmpeg()
+
+try:
+    version = subprocess.check_output(['ffmpeg', '-version'], stderr=subprocess.STDOUT)
+    print("✅ FFmpeg is installed and available.")
+except Exception as e:
+    print("❌ FFmpeg not found:", e)
 
 # --- Session State Initialization ---
 if 'cookie_data' not in st.session_state:
